@@ -192,96 +192,105 @@ struct PackageHead
 #pragma pack(pop) 
 int main()
 {
-	std::string szFileName = "C:/script/test1/test2_c.ams";
-	// 从源文件路径中去掉包含包名的路径，使用相对路径计算uid
-	std::string temp = "script.pkg";
-	temp = temp.substr(0, temp.size() - 4) + "/";
+#pragma region regionName
+	//std::string szFileName = "C:/script/test1/test2_c.ams";
+	//// 从源文件路径中去掉包含包名的路径，使用相对路径计算uid
+	//std::string temp = "script.pkg";
+	//temp = temp.substr(0, temp.size() - 4) + "/";
 
-	//int32  pos  = szFileName.find(temp) + temp.size();
+	////int32  pos  = szFileName.find(temp) + temp.size();
 
-	std::string fullfolder = "/" + temp;
-	int32 pos = szFileName.rfind(fullfolder);
-	if (pos == std::string::npos)
-	{
-		if (szFileName.substr(0, temp.size()) == temp)
-		{
-			pos = temp.size();
-		}
-		else
-		{
-			//cerr << (string("路径") + szFileName + "中不存在" + fullfolder);
-		}
-	}
-	else
-	{
-		pos += fullfolder.size();
-	}
+	//std::string fullfolder = "/" + temp;
+	//int32 pos = szFileName.rfind(fullfolder);
+	//if (pos == std::string::npos)
+	//{
+	//	if (szFileName.substr(0, temp.size()) == temp)
+	//	{
+	//		pos = temp.size();
+	//	}
+	//	else
+	//	{
+	//		//cerr << (string("路径") + szFileName + "中不存在" + fullfolder);
+	//	}
+	//}
+	//else
+	//{
+	//	pos += fullfolder.size();
+	//}
 
-	szFileName = szFileName.substr(pos, szFileName.size());
+	//szFileName = szFileName.substr(pos, szFileName.size());
 
-	uint32 id = FileName2Id(szFileName.c_str());
-	printf("%d\n", id);
-	FILE* pFile = fopen("D:\\script.wdf", "rb");
+	//uint32 id = FileName2Id(szFileName.c_str());
+	//printf("%d\n", id);
+#pragma endregion regionName
+	FILE* pFile = fopen("D:\\interface.wdf", "rb");
 	PackageHead fileHead;
 	fread(&fileHead, sizeof(PackageHead), 1, pFile);
-	
+
 	printf("filehead:\nID:%d num:%d offset:%d xor:%d ver:%d\n", fileHead.id, fileHead.number,
 		fileHead.offset, fileHead.bXor, fileHead.ver);
 	PackFileIndex fileIndex;
 	char fileBuffer[1000000];
 	for (size_t i = 0; i < fileHead.number; i++)
 	{
-		fseek(pFile, fileHead.offset + i*sizeof(fileIndex), SEEK_SET);
-		int aaa = fread(&fileIndex, sizeof(fileIndex), 1, pFile);
-		//printf("%d\n",			fileIndex.check_code);
-		//printf("%d\n", ftell(pFile));"%d\t%d\t%d\t%d\t%d\n"
+		//移动文件指针到i个索引文件并读取
+		fseek(pFile, fileHead.offset + i * sizeof(fileIndex), SEEK_SET);
+		fread(&fileIndex, sizeof(fileIndex), 1, pFile);
+
 		//printf("%d\n", fileIndex.uid, fileIndex.offset, fileIndex.size, fileIndex.space,
 		//	fileIndex.check_code);
 
-		//Sleep(1000);
-		//continue;
-		if (fileIndex.uid != id)
-		{
-			//continue;
-		}
-		
-		char fileName[255] = "";
-		_itoa(fileIndex.uid, fileName, 10);
+		//根据文件索引读取文件
+		memset(fileBuffer, 0, sizeof(fileBuffer));
+		fseek(pFile, fileIndex.offset, SEEK_SET);
+		fread(fileBuffer, 1, fileIndex.size, pFile);
 
+		//准备解压缓冲区
+		static char decompressBuffer[200000] = "";
+		memset(decompressBuffer, 0, sizeof(decompressBuffer));
+
+		//使用bzip2解压文件
+		unsigned int len = sizeof(decompressBuffer);
+		int decompressOK = BZ2_bzBuffToBuffDecompress(decompressBuffer, &len, fileBuffer,
+			fileIndex.size, 0, 0);
+		if (decompressOK == 0)
 		{
-			memset(fileBuffer, 0, sizeof(fileBuffer));
-			fseek(pFile, fileIndex.offset, SEEK_SET);
-			fread(fileBuffer, 1, fileIndex.size, pFile);
-			//XorBuf(fileBuffer);
-			char decompress[200000] = "";
-			unsigned int len = sizeof(decompress);
-			int aaaaaa = BZ2_bzBuffToBuffDecompress(decompress, &len, fileBuffer,
-				fileIndex.size, 0, 0);
-			if (aaaaaa == 0)
+			//异或解密
+			BufferXor(decompressBuffer, 0, len);
+
+			//检测文件后缀
+
+			char fileExt[10] = "";
+			if (strncmp(decompressBuffer + 1, "Lua", 3) == 0)
 			{
-				FILE* unPackFile = fopen(fileName, "wb+");
-				if (unPackFile)
-				{
-					//XorBuf(decompress);
-					BufferXor(decompress, 0, len);
-					//if (len == fileIndex.space)
-					//{
-					//	printf("!!!!!!!!!!!!!\n");
-					//}
-					//printf("1\n");
-					fwrite(decompress, 1, len, unPackFile);
-					fclose(unPackFile);
-				}
-
-				//printf("1 %d\n", fileIndex.size);
+				sprintf(fileExt, "%s", "Lua");
 			}
-			else {
-				printf("0 %d\n", fileIndex.size);
-				//XorBuf(fileBuffer);
-				//fwrite(fileBuffer, 1, fileIndex.size, unPackFile);
-			}					
-			
-			//delete[] fileBuffer;
+			else if (strncmp(decompressBuffer, "TEX", 3) == 0)
+			{
+				sprintf(fileExt, "%s", "TEX");
+			}
+			else
+			{
+				printf("unknown\n");
+			}
+
+			//确定文件名
+			char fileName[255] = "";
+			sprintf(fileName, "D:\\temp\\%d.%s", fileIndex.uid, fileExt);
+
+			//写入到文件
+			FILE* unPackFile = fopen(fileName, "wb+");
+			if (unPackFile)
+			{
+				fwrite(decompressBuffer, 1, len, unPackFile);
+				fclose(unPackFile);
+			}
+		}
+		else 
+		{
+			printf("提取文件失败！文件ID %d。\n", fileIndex.uid);
+			//XorBuf(fileBuffer);
+			//fwrite(fileBuffer, 1, fileIndex.size, unPackFile);
 		}
 	}
 	fclose(pFile);
