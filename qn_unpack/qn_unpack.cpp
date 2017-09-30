@@ -221,7 +221,7 @@ int main()
 
 	uint32 id = FileName2Id(szFileName.c_str());
 	printf("%d\n", id);
-	FILE* pFile = fopen("D:\\script.wdf", "r");
+	FILE* pFile = fopen("D:\\script.wdf", "rb");
 	PackageHead fileHead;
 	fread(&fileHead, sizeof(PackageHead), 1, pFile);
 	
@@ -256,23 +256,27 @@ int main()
 			char decompress[200000] = "";
 			unsigned int len = sizeof(decompress);
 			int aaaaaa = BZ2_bzBuffToBuffDecompress(decompress, &len, fileBuffer,
-				fileIndex.size, 0, 3);
+				fileIndex.size, 0, 0);
 			if (aaaaaa == 0)
 			{
-				FILE* unPackFile = fopen(fileName, "w+");
+				FILE* unPackFile = fopen(fileName, "wb+");
 				if (unPackFile)
-				//XorBuf(decompress);
-				BufferXor(decompress, 0, len);
-				//if (len == fileIndex.space)
-				//{
-				//	printf("!!!!!!!!!!!!!\n");
-				//}
-				//printf("1\n");
-				fwrite(decompress, 1, len, unPackFile);
-				fclose(unPackFile);
+				{
+					//XorBuf(decompress);
+					BufferXor(decompress, 0, len);
+					//if (len == fileIndex.space)
+					//{
+					//	printf("!!!!!!!!!!!!!\n");
+					//}
+					//printf("1\n");
+					fwrite(decompress, 1, len, unPackFile);
+					fclose(unPackFile);
+				}
+
+				//printf("1 %d\n", fileIndex.size);
 			}
 			else {
-				printf("0\n");
+				printf("0 %d\n", fileIndex.size);
 				//XorBuf(fileBuffer);
 				//fwrite(fileBuffer, 1, fileIndex.size, unPackFile);
 			}					
