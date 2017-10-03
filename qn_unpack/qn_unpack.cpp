@@ -223,14 +223,14 @@ int main()
 	//uint32 id = FileName2Id(szFileName.c_str());
 	//printf("%d\n", id);
 #pragma endregion regionName
-	FILE* pFile = fopen("D:\\interface.wdf", "rb");
+	FILE* pFile = fopen("D:\\tile.wdf", "rb");
 	PackageHead fileHead;
 	fread(&fileHead, sizeof(PackageHead), 1, pFile);
 
 	printf("filehead:\nID:%d num:%d offset:%d xor:%d ver:%d\n", fileHead.id, fileHead.number,
 		fileHead.offset, fileHead.bXor, fileHead.ver);
 	PackFileIndex fileIndex;
-	char fileBuffer[1000000];
+	char fileBuffer[10000000];
 	for (size_t i = 0; i < fileHead.number; i++)
 	{
 		//移动文件指针到i个索引文件并读取
@@ -246,7 +246,7 @@ int main()
 		fread(fileBuffer, 1, fileIndex.size, pFile);
 
 		//准备解压缓冲区
-		static char decompressBuffer[200000] = "";
+		static char decompressBuffer[10000000] = "";
 		memset(decompressBuffer, 0, sizeof(decompressBuffer));
 
 		//使用bzip2解压文件
@@ -269,6 +269,58 @@ int main()
 			{
 				sprintf(fileExt, "%s", "TEX");
 			}
+			else if (strncmp(decompressBuffer+2, "rtf", 3) == 0)
+			{
+				sprintf(fileExt, "%s", "RTF");
+			}
+			else if (strncmp(decompressBuffer, "ARP", 3) == 0)
+			{
+				sprintf(fileExt, "%s", "ARP");
+			}
+			else if (strncmp(decompressBuffer, "RS", 2) == 0)
+			{
+				sprintf(fileExt, "%s", "RS");
+			}
+			else if (strncmp(decompressBuffer, "ANF", 3) == 0)
+			{
+				sprintf(fileExt, "%s", "ANF");
+			}
+			else if (strncmp(decompressBuffer, "ARA", 3) == 0)
+			{
+				sprintf(fileExt, "%s", "ARA");
+			}
+			else if (strncmp(decompressBuffer, "ARE", 3) == 0)
+			{
+				sprintf(fileExt, "%s", "ARE");
+			}
+			else if (strncmp(decompressBuffer, "MSH", 3) == 0)
+			{
+				sprintf(fileExt, "%s", "MSH");
+			}
+			else if (strncmp(decompressBuffer+1, "BPS", 3) == 0)
+			{
+				sprintf(fileExt, "%s", "BPS");
+			}
+			else if (strncmp(decompressBuffer, "EXIF", 4) == 0)
+			{
+				sprintf(fileExt, "%s", "EXIF");
+			}
+			else if (strncmp(decompressBuffer, "REGN", 4) == 0)
+			{
+				sprintf(fileExt, "%s", "REGN");
+			}
+			else if (strncmp(decompressBuffer, "AMAP", 4) == 0)
+			{
+				sprintf(fileExt, "%s", "AMAP");
+			}
+			else if (strncmp(decompressBuffer, "<x>", 3) == 0)
+			{
+				sprintf(fileExt, "%s", "x");
+			}
+			else if (strncmp(decompressBuffer, "ACF", 3) == 0)
+			{
+				sprintf(fileExt, "%s", "ACF");
+			}
 			else
 			{
 				printf("unknown\n");
@@ -276,7 +328,7 @@ int main()
 
 			//确定文件名
 			char fileName[255] = "";
-			sprintf(fileName, "D:\\temp\\%d.%s", fileIndex.uid, fileExt);
+			sprintf(fileName, "D:\\qn\\tile\\%d.%s", fileIndex.uid, fileExt);
 
 			//写入到文件
 			FILE* unPackFile = fopen(fileName, "wb+");
@@ -289,6 +341,7 @@ int main()
 		else 
 		{
 			printf("提取文件失败！文件ID %d。\n", fileIndex.uid);
+			system("pause");
 			//XorBuf(fileBuffer);
 			//fwrite(fileBuffer, 1, fileIndex.size, unPackFile);
 		}
